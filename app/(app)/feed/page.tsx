@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { db } from '@/lib/db'
 import { getSession } from '@/lib/session'
+import { formatCurrency } from '@/lib/utils'
 
 interface FeedBatchRow {
   id: string
@@ -67,7 +68,7 @@ export default async function FeedPage() {
                   <tr key={b.id} className="border-t border-gray-200 hover:bg-gray-50">
                     <td className="px-4 py-2">{b.feed_type}</td>
                     <td className="px-4 py-2">{Number(b.quantity_kg).toFixed(2)}</td>
-                    <td className="px-4 py-2">${Number(b.total_cost).toFixed(2)}</td>
+                    <td className="px-4 py-2">{formatCurrency(Number(b.total_cost))}</td>
                     <td className="px-4 py-2">{b.purchase_date}</td>
                     <td className="px-4 py-2">{b.supplier_name ?? '—'}</td>
                     <td className="px-4 py-2">
@@ -102,7 +103,7 @@ export default async function FeedPage() {
                   <tr key={b.id} className="border-t border-gray-200 text-gray-500">
                     <td className="px-4 py-2">{b.feed_type}</td>
                     <td className="px-4 py-2">{Number(b.quantity_kg).toFixed(2)}</td>
-                    <td className="px-4 py-2">${Number(b.total_cost).toFixed(2)}</td>
+                    <td className="px-4 py-2">{formatCurrency(Number(b.total_cost))}</td>
                     <td className="px-4 py-2">{b.purchase_date}</td>
                     <td className="px-4 py-2">
                       <Link href={`/feed/${b.id}`} className="text-green-600 hover:underline">

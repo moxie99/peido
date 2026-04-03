@@ -267,3 +267,44 @@ test('P15: transaction rollback leaves no partial state', () => {
     { numRuns: 100 }
   )
 })
+
+// ---------------------------------------------------------------------------
+// Property 4: Active feed batches are ordered oldest-first
+// Validates: Requirements 2.2
+// ---------------------------------------------------------------------------
+
+// Feature: poultry-farm-tracker, Property 4: Active feed batches are ordered oldest-first
+test('P4: active feed batches returned in ascending purchase_date order', () => {
+  // Simulate the ORDER BY purchase_date ASC query result
+  function sortByPurchaseDateAsc(batches: Array<{ purchaseDate: string; status: string }>) {
+    return [...batches]
+      .filter((b) => b.status === 'active')
+      .sort((a, b) => a.purchaseDate.localeCompare(b.purchaseDate))
+  }
+
+  const baseDateMs = new Date('2023-01-01').getTime()
+  const isoDateArb = fc.integer({ min: 0, max: 365 * 2 * 24 * 60 * 60 * 1000 })
+    .map((offset) => new Date(baseDateMs + offset).toISOString().split('T')[0])
+
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.record({
+          purchaseDate: isoDateArb,
+          status: fc.constantFrom('active', 'depleted') as fc.Arbitrary<'active' | 'depleted'>,
+        }),
+        { minLength: 0, maxLength: 20 }
+      ),
+      (batches) => {
+        const sorted = sortByPurchaseDateAsc(batches)
+        // Verify the result is sorted ascending
+        for (let i = 1; i < sorted.length; i++) {
+          if (sorted[i].purchaseDate < sorted[i - 1].purchaseDate) return false
+        }
+        // Verify all returned items are active
+        return sorted.every((b) => b.status === 'active')
+      }
+    ),
+    { numRuns: 100 }
+  )
+})

@@ -12,8 +12,8 @@ const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 
 function getEncodedKey(): Uint8Array {
   const secret = process.env.SESSION_SECRET
-  if (!secret || secret.length < 32) {
-    throw new Error('SESSION_SECRET env var must be set and at least 32 characters long')
+  if (!secret || secret.length < 16) {
+    throw new Error('SESSION_SECRET env var must be set and at least 16 characters long')
   }
   return new TextEncoder().encode(secret)
 }

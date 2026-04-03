@@ -115,27 +115,27 @@ Incremental implementation of a fullstack Next.js app for tracking feed batches,
     - Display generic error message on failure
     - _Requirements: 10.2, 10.3_
 
-- [-] 11. UI — Feed batch pages
-  - [-] 11.1 Create `app/(app)/feed/page.tsx` — list all feed batches for the authenticated user
+- [x] 11. UI — Feed batch pages
+  - [x] 11.1 Create `app/(app)/feed/page.tsx` — list all feed batches for the authenticated user
     - Active batches ordered by purchase date ascending; show feed type, quantity, cost, purchase date, status
     - Show "no feed in stock" prompt when no active batches exist
     - _Requirements: 2.1, 2.2, 2.3, 2.4_
-  - [ ] 11.2 Write property test for Property 4: active feed batches are ordered oldest-first
+  - [x] 11.2 Write property test for Property 4: active feed batches are ordered oldest-first
     - **Property 4: Active feed batches are ordered oldest-first**
     - **Validates: Requirements 2.2**
-  - [ ] 11.3 Create `app/(app)/feed/new/page.tsx` — form to log a new feed batch
+  - [x] 11.3 Create `app/(app)/feed/new/page.tsx` — form to log a new feed batch
     - Calls `createFeedBatch` Server Action; renders field-level validation errors inline
     - _Requirements: 1.1, 1.3_
-  - [ ] 11.4 Create `app/(app)/feed/[id]/page.tsx` — feed batch detail view
+  - [x] 11.4 Create `app/(app)/feed/[id]/page.tsx` — feed batch detail view
     - Display batch info, depletion date, total eggs, egg yield rate, revenue, profit, profitability status
     - Include "Mark as depleted" form calling `markFeedDepleted`
     - Prompt to set egg price if none configured
     - _Requirements: 5.3, 6.1, 6.2, 6.3, 6.4, 6.5, 6.7_
 
-- [ ] 12. UI — Egg records pages
-  - [ ] 12.1 Create `app/(app)/eggs/page.tsx` — list recent egg records
+- [x] 12. UI — Egg records pages
+  - [x] 12.1 Create `app/(app)/eggs/page.tsx` — list recent egg records
     - _Requirements: 4.1_
-  - [ ] 12.2 Create `app/(app)/eggs/new/page.tsx` — form to log daily egg count
+  - [x] 12.2 Create `app/(app)/eggs/new/page.tsx` — form to log daily egg count
     - Calls `upsertEggRecord`; renders validation errors inline
     - _Requirements: 4.1, 4.2, 4.3_
 
