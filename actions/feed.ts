@@ -100,17 +100,17 @@ export async function markFeedDepleted(
 
   const resolvedDate = depletionDate ?? new Date().toISOString().split('T')[0]
 
-  // Wrap in a transaction: insert depletion event + update status atomically
-  await db.begin(async (tx) => {
-    await tx`
-      INSERT INTO depletion_events (feed_batch_id, depletion_date)
-      VALUES (${feedBatchId}, ${resolvedDate})
-    `
-    await tx`
-      UPDATE feed_batches SET status = 'depleted'
-      WHERE id = ${feedBatchId} AND user_id = ${session.userId}
-    `
-  })
+  // Insert depletion event
+  await db`
+    INSERT INTO depletion_events (feed_batch_id, depletion_date)
+    VALUES (${feedBatchId}, ${resolvedDate})
+  `
+  
+  // Update status to depleted
+  await db`
+    UPDATE feed_batches SET status = 'depleted'
+    WHERE id = ${feedBatchId} AND user_id = ${session.userId}
+  `
 
   redirect(`/feed/${feedBatchId}`)
 }

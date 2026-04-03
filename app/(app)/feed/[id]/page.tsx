@@ -1,19 +1,12 @@
-'use client'
-
-import { useActionState } from 'react'
-import { notFound, redirect } from 'next/navigation'
+import { redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { db } from '@/lib/db'
 import { getSession } from '@/lib/session'
-import { computeFeedBatchCorrelation, type FeedBatch } from '@/lib/correlation'
-import { markFeedDepleted } from '@/actions/feed'
-import { formatCurrency } from '@/lib/utils'
+import { computeFeedBatchCorrelation, type FeedBatch, type FeedBatchWithCorrelation } from '@/lib/correlation'
+import { DepletionForm } from './depletion-form'
 
-interface PageProps {
-  params: Promise<{ id: string }>
-}
-
-async function getFeedBatchDetail(id: string, userId: string) {
+async function getFeedBatchDetail(id: string, userId: string): Promise<FeedBatchWithCorrelation | null> {
   const rows = await db`
     SELECT id, user_id, feed_type, quantity_kg, total_cost, cost_per_kg,
            supplier_name, purchase_date, status, created_at
@@ -38,7 +31,6 @@ async function getFeedBatchDetail(id: string, userId: string) {
     createdAt: row.created_at as string,
   }
 
-  // Get current egg price
   const priceRows = await db`
     SELECT price FROM egg_prices
     WHERE user_id = ${userId}
@@ -52,38 +44,11 @@ async function getFeedBatchDetail(id: string, userId: string) {
   return computeFeedBatchCorrelation(batch, userId, currentEggPrice)
 }
 
-function DepletionForm({ batchId }: { batchId: string }) {
-  const [state, action, pending] = useActionState(markFeedDepleted, undefined)
-
-  return (
-    <form action={action} className="mt-4 space-y-3">
-      <input type="hidden" name="feedBatchId" value={batchId} />
-      <div>
-        <label htmlFor="depletionDate" className="block text-sm font-medium text-gray-700 mb-1">
-          Depletion Date (leave blank for today)
-        </label>
-        <input
-          id="depletionDate"
-          name="depletionDate"
-          type="date"
-          className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-      </div>
-      {state?.message && (
-        <p role="alert" className="text-red-600 text-sm">{state.message}</p>
-      )}
-      <button
-        type="submit"
-        disabled={pending}
-        className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded transition-colors"
-      >
-        {pending ? 'Marking…' : 'Mark as Depleted'}
-      </button>
-    </form>
-  )
-}
-
-export default async function FeedBatchDetailPage({ params }: PageProps) {
+export default async function FeedBatchDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
   const session = await getSession()
   if (!session) redirect('/login')
 
@@ -93,60 +58,60 @@ export default async function FeedBatchDetailPage({ params }: PageProps) {
 
   const statusColor =
     data.profitabilityStatus === 'profitable'
-      ? 'text-green-600'
+      ? 'text-green-600 dark:text-green-400'
       : data.profitabilityStatus === 'loss'
-      ? 'text-red-600'
-      : 'text-yellow-600'
+      ? 'text-red-600 dark:text-red-400'
+      : 'text-yellow-600 dark:text-yellow-400'
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       <div className="flex items-center gap-2 mb-6">
-        <Link href="/feed" className="text-gray-500 hover:text-gray-700 text-sm">
+        <Link href="/feed" className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-sm">
           ← Feed Batches
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold text-gray-800 mb-1">{data.feedType}</h1>
-      <p className="text-sm text-gray-500 mb-6">
+      <h1 className="text-2xl font-semibold text-gray-800 dark:text-white mb-1">{data.feedType}</h1>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
         Status:{' '}
-        <span className={data.status === 'active' ? 'text-green-600 font-medium' : 'text-gray-500 font-medium'}>
+        <span className={data.status === 'active' ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-500 dark:text-gray-400 font-medium'}>
           {data.status}
         </span>
       </p>
 
-      <div className="bg-white rounded-lg shadow p-6 space-y-3 mb-6">
-        <Row label="Purchase Date" value={data.purchaseDate} />
-        {data.depletionDate && <Row label="Depletion Date" value={data.depletionDate} />}
-        <Row label="Quantity" value={`${data.quantityKg.toFixed(2)} kg`} />
-        <Row label="Total Cost" value={formatCurrency(data.totalCost)} />
-        <Row label="Cost per kg" value={formatCurrency(data.costPerKg)} />
-        {data.supplierName && <Row label="Supplier" value={data.supplierName} />}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/30 p-6 space-y-3 mb-6">
+        <DetailRow label="Purchase Date" value={data.purchaseDate} />
+        {data.depletionDate && <DetailRow label="Depletion Date" value={data.depletionDate} />}
+        <DetailRow label="Quantity" value={`${data.quantityKg.toFixed(2)} kg`} />
+        <DetailRow label="Total Cost" value={`₦${data.totalCost.toFixed(2)}`} />
+        <DetailRow label="Cost per kg" value={`₦${data.costPerKg.toFixed(4)}`} />
+        {data.supplierName && <DetailRow label="Supplier" value={data.supplierName} />}
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6 space-y-3 mb-6">
-        <h2 className="text-lg font-medium text-gray-700 mb-2">Egg Correlation</h2>
-        <Row label="Total Eggs" value={data.totalEggs.toString()} />
-        <Row label="Yield Rate" value={`${data.eggYieldRate.toFixed(2)} eggs/kg`} />
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/30 p-6 space-y-3 mb-6">
+        <h2 className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-2">Egg Correlation</h2>
+        <DetailRow label="Total Eggs" value={data.totalEggs.toString()} />
+        <DetailRow label="Yield Rate" value={`${data.eggYieldRate.toFixed(2)} eggs/kg`} />
         {data.revenue !== null ? (
           <>
-            <Row label="Revenue" value={formatCurrency(data.revenue)} />
-            <Row label="Profit" value={formatCurrency(data.profit!)} />
-            <Row
+            <DetailRow label="Revenue" value={`₦${data.revenue.toFixed(2)}`} />
+            <DetailRow label="Profit" value={`₦${data.profit!.toFixed(2)}`} />
+            <DetailRow
               label="Status"
               value={data.profitabilityStatus ?? '—'}
               valueClass={statusColor + ' font-semibold capitalize'}
             />
           </>
         ) : (
-          <p className="text-sm text-amber-600">
+          <p className="text-sm text-amber-600 dark:text-amber-400">
             <Link href="/settings" className="underline">Set an egg price</Link> to see profitability.
           </p>
         )}
       </div>
 
       {data.status === 'active' && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-medium text-gray-700">Mark as Depleted</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow dark:shadow-gray-900/30 p-6">
+          <h2 className="text-lg font-medium text-gray-700 dark:text-gray-200">Mark as Depleted</h2>
           <DepletionForm batchId={data.id} />
         </div>
       )}
@@ -154,10 +119,10 @@ export default async function FeedBatchDetailPage({ params }: PageProps) {
   )
 }
 
-function Row({
+function DetailRow({
   label,
   value,
-  valueClass = 'text-gray-800',
+  valueClass = 'text-gray-800 dark:text-white',
 }: {
   label: string
   value: string
@@ -165,7 +130,7 @@ function Row({
 }) {
   return (
     <div className="flex justify-between text-sm">
-      <span className="text-gray-500">{label}</span>
+      <span className="text-gray-500 dark:text-gray-400">{label}</span>
       <span className={valueClass}>{value}</span>
     </div>
   )
